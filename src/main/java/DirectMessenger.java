@@ -8,7 +8,7 @@ import java.util.ArrayList;
 
 public class DirectMessenger extends Messenger {
 
-    private static long setUser = 0;
+    private static long currentUser = 0;
 
     // handles all the message forwarding
     public static void mailman(MessageReceivedEvent event, Message message, String content) {
@@ -28,6 +28,13 @@ public class DirectMessenger extends Messenger {
 
             sendMessageToUser(Long.parseLong(System.getenv("ownerID")), messageToSend);
             return;
+        }
+        // from here on, all this is just for my dms
+        if (content.equalsIgnoreCase("!shutdown")) {
+            message.addReaction(Emoji.fromUnicode("U+2705")).queue();
+            DiscordBot.getJDA().shutdown();
+        } else if (content.equalsIgnoreCase("!shutdownnow")) {
+            DiscordBot.getJDA().shutdownNow();
         }
 
         // command to directly dm someone
@@ -66,20 +73,20 @@ public class DirectMessenger extends Messenger {
         // set dm command
         else if (words.getFirst().equals("setdm") && content.charAt(0) == '!') {
             try {
-                setUser = Long.parseLong(words.get(1));
-                if (!hasAccessToUser(setUser)) {
-                    setUser = 0;
+                currentUser = Long.parseLong(words.get(1));
+                if (!hasAccessToUser(currentUser)) {
+                    currentUser = 0;
                     event.getChannel().sendMessage("❌ Hmm.. I can't seem to find that user").queue();
 
                 } else {
-                    event.getChannel().sendMessage("> ✅ Set dm to <@" + setUser + ">!").queue();
+                    event.getChannel().sendMessage("> ✅ Set dm to <@" + currentUser + ">!").queue();
                 }
 
             } catch (NumberFormatException e) {
-                setUser = 0;
+                currentUser = 0;
                 event.getChannel().sendMessage("❌ Missing arguments! Ex: `!setdm [userID]`").queue();
             } catch (IndexOutOfBoundsException e) {
-                setUser = 0;
+                currentUser = 0;
                 event.getChannel().sendMessage("✅ Set user cleared").queue();
             }
 
@@ -87,7 +94,7 @@ public class DirectMessenger extends Messenger {
         }
 
         // if there is a user set, then message is forwarded
-        if (setUser != 0) {
+        if (currentUser != 0) {
             String messageToSend = content;
             if (!message.getAttachments().isEmpty()) {
                 StringBuilder attatchments = new StringBuilder();
@@ -98,12 +105,12 @@ public class DirectMessenger extends Messenger {
                 messageToSend += "\n\n**__Attatchments__**\n" + attatchments;
             }
 
-            sendMessageToUser(setUser, messageToSend);
+            sendMessageToUser(currentUser, messageToSend);
         }
 
     }
 
-    // checks if the bot has a user in cache and is accessible
+    // checks if the bot has the user in cache and is accessible
     public static boolean hasAccessToUser(long userID) {
         JDA jda = DiscordBot.getJDA();
 

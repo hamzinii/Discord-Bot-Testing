@@ -26,10 +26,9 @@ public class DiscordBot {
     private static JDA jda;
 
     public static void main(String[] args) throws InterruptedException {
-
         JDABuilder api = JDABuilder.createDefault(System.getenv("token"));
 
-        api.addEventListeners(new Messenger(), new SlashCommands(), new ContextMenu());
+        api.addEventListeners(new Messenger(), new SlashCommands(), new ContextMenu(), new ModalMenu());
         api.enableIntents(GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MEMBERS, GatewayIntent.DIRECT_MESSAGES);
         api.setMemberCachePolicy(MemberCachePolicy.ALL);
         api.setChunkingFilter(ChunkingFilter.ALL);
@@ -46,7 +45,6 @@ public class DiscordBot {
         readActivityFromJSON("status.json");
         applicationCommands();
         jda.awaitReady();
-
     }
 
     public static void readActivityFromJSON(String fileName) {
@@ -57,7 +55,6 @@ public class DiscordBot {
             if (activity.has("Activity Type") && activity.has("Status")) {
                 String type = activity.getString("Activity Type");
                 String status = activity.getString("Status");
-
                 setActivity(type, status);
             }
 
@@ -75,7 +72,6 @@ public class DiscordBot {
         try (FileWriter file = new FileWriter(fileName)) {
             file.write(newStatus.toString());
             file.flush();
-
         }
         catch (IOException e) {
             System.out.println(e.fillInStackTrace().toString());
@@ -96,12 +92,10 @@ public class DiscordBot {
 
     public static void applicationCommands() {
         String botName = jda.getSelfUser().getName();
-
         jda.updateCommands().addCommands( // can take upwards of an hour
             /*---------------------
                  Slash Commands
             ---------------------*/
-
             // say command
             Commands.slash("say", "Make " + botName + " say a message")
                     .addOption(STRING, "content", "Message for the bot to repeat", true)
@@ -122,12 +116,10 @@ public class DiscordBot {
             Commands.slash("joinvc", "Have " + botName + " join a voice channel")
                     .addOptions(new OptionData(CHANNEL, "vc", "Name of the voice channel", true)
                             .setChannelTypes(ChannelType.VOICE))
-                    .setGuildOnly(true)
                     .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.VOICE_CONNECT, Permission.VOICE_SPEAK, Permission.VIEW_CHANNEL)),
 
             // leave voice channel
             Commands.slash("leavevc","Have " + botName + " leave the voice channel in this server")
-                    .setGuildOnly(true)
                     .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.VOICE_CONNECT, Permission.VOICE_SPEAK, Permission.VIEW_CHANNEL)),
 
             // time --> discord time stamp converter
@@ -158,10 +150,12 @@ public class DiscordBot {
             // source code
             Commands.slash("source", "View the source code for " + botName),
 
+            // get channels
+            Commands.slash("getchannels", "channels bot has access to"),
+
             /*---------------------
              Context Menu Commands
             ---------------------*/
-
             // Get User Avatar
             Commands.context(Command.Type.USER, "Get user avatar"),
 
@@ -169,11 +163,13 @@ public class DiscordBot {
             Commands.context(Command.Type.USER, "amogus bomb"),
 
             // Count Words
-            Commands.message("Count words")
+            Commands.message("Count words"),
+
+            // randomize the vc the user is in... on loop (ohno)
+            Commands.user("Random VC")
 
         ).queue();
     }
-
     public static JDA getJDA() {
         return jda;
     }

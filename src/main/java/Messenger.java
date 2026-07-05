@@ -1,6 +1,7 @@
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -23,11 +24,11 @@ public class Messenger extends ListenerAdapter {
         String content = message.getContentRaw();
         String contentLowerCase = message.getContentRaw().toLowerCase();
         ArrayList<String> words = messageContentToArrayList(contentLowerCase);
-        
+
         if (event.isFromType(ChannelType.PRIVATE)) {
             DirectMessenger.mailman(event, message, content);
         }
-
+        
         // amogus in channel
         if (contentLowerCase.equals("!amogusify")) {
             message.delete().queue();
@@ -62,6 +63,33 @@ public class Messenger extends ListenerAdapter {
 
         // responders in funny server
         if (event.getChannelType().isGuild() && event.getGuild().getId().equals(System.getenv("funnyServer"))) {
+
+            // big the channels
+            if (contentLowerCase.equals("!big")) {
+                for (TextChannel channel : event.getGuild().getTextChannels()) {
+                    channel.getManager().setName("big-" + channel.getName()).reason("big").queue();
+                }
+                for (VoiceChannel channel : event.getGuild().getVoiceChannels()) {
+                    channel.getManager().setName("big " + channel.getName()).queue();
+                }
+
+                message.reply("huge").queue();
+            }
+
+            // unbig the channels
+            if (contentLowerCase.equals("!small")) {
+                for (TextChannel channel : event.getGuild().getTextChannels()) {
+                    String channelName = channel.getName();
+                    if (!channelName.contains("big-")) {continue;}
+                    channel.getManager().setName(channelName.substring(channelName.indexOf("big-") + 4)).queue();
+                }
+                for (VoiceChannel channel : event.getGuild().getVoiceChannels()) {
+                    if (!channel.getName().contains("big ")) {continue;}
+                    channel.getManager().setName(channel.getName().substring(channel.getName().indexOf("big ") + 4)).queue();
+                }
+
+                message.reply("not huge").queue();
+            }
 
             // target ping
             if (contentLowerCase.contains(System.getenv("trigger"))) {
