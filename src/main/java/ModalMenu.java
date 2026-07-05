@@ -8,9 +8,7 @@ public class ModalMenu extends ListenerAdapter {
         if (event.getModalId().equals("channelaccess")) {
             long channelID = Long.parseLong(event.getValue("channelID").getAsString());
             for (GuildChannel channel : event.getGuild().getChannels()) {
-                if (channel.getIdLong() == channelID) {
 
-                }
             }
         }
     }
