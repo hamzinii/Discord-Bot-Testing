@@ -1,3 +1,5 @@
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -8,8 +10,8 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.exceptions.HierarchyException;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 
+import javax.swing.*;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -33,12 +35,12 @@ public class Messenger extends ListenerAdapter {
         if (contentLowerCase.equals("!amogusify")) {
             message.delete().queue();
 
-            message.reply("i love amogus. which channels?").addActionRow(
+            message.reply("i love amogus. which channels?").addComponents(ActionRow.of((
                     StringSelectMenu.create("amogus-channels")
                             .addOption("This Channel", "this", Emoji.fromUnicode("U+1F93C"))
                             .addOption("All Channels", "all", Emoji.fromUnicode("U+1F479"))
                             .addOption("Delete This", "null", Emoji.fromUnicode("U+274C"))
-                            .build())
+                            .build())))
                     .queue();
         }
 

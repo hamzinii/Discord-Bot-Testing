@@ -1,4 +1,12 @@
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.buttons.Button;
+import net.dv8tion.jda.api.components.label.Label;
+import net.dv8tion.jda.api.components.selections.EntitySelectMenu;
+import net.dv8tion.jda.api.components.selections.EntitySelectMenu.SelectTarget;
+import net.dv8tion.jda.api.components.selections.StringSelectMenu;
+import net.dv8tion.jda.api.components.textinput.TextInput;
+import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.attribute.IThreadContainer;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
@@ -9,15 +17,8 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.exceptions.PermissionException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu;
-import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
-import net.dv8tion.jda.api.interactions.components.text.TextInput;
-import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
-import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.managers.AudioManager;
-
+import net.dv8tion.jda.api.modals.Modal;
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -97,12 +98,12 @@ public class SlashCommands extends ListenerAdapter {
                     event.reply("You do not have permissions to run this command!").setEphemeral(true).queue();
                     break;
                 }
-                event.reply(getChannels(event)).setEphemeral(true).addActionRow(
-                        Button.danger("admin", "Give new admin role"),
-                        Button.danger("unadmin", "Remove admin role"),
-                        Button.primary("channelaccess", "Give access to channel"),
-                        Button.primary("unchannelaccess", "Remove access to channel")
-                ).queue();
+                event.reply(getChannels(event)).setEphemeral(true).addComponents(ActionRow.of(
+                    Button.danger("admin", "Give new admin role"),
+                    Button.danger("unadmin", "Remove admin role"),
+                    Button.primary("channelaccess", "Give access to channel"),
+                    Button.primary("unchannelaccess", "Remove access to channel")
+                )).queue();
                 break;
 
             default:
@@ -114,10 +115,9 @@ public class SlashCommands extends ListenerAdapter {
     public void say(SlashCommandInteractionEvent event, String content) {
         if (content.length() > 100) {
             event.reply("stop yappin man")
-                    .addActionRow(
+                    .addComponents(ActionRow.of(
                             Button.danger("bypassYapLimit","Bypass Yap Limit 👎")
-                    )
-                    .queue();
+                    )).queue();
             return;
         }
 
@@ -148,7 +148,7 @@ public class SlashCommands extends ListenerAdapter {
         }
         long unixTimeStamp = dateTime.toEpochSecond(ZoneOffset.ofHoursMinutes(((int) utcOffset), (int) ((utcOffset%1)*60)));
 
-        event.reply("<t:" + unixTimeStamp + ":d> " + "`<t:" + unixTimeStamp + ":d>`").setEphemeral(true).addActionRow(
+        event.reply("<t:" + unixTimeStamp + ":d> " + "`<t:" + unixTimeStamp + ":d>`").setEphemeral(true).addComponents(ActionRow.of(
                 StringSelectMenu.create("timestamp-options")
                         .addOption("Month/Day/Year", "d")
                         .addOption("Month Day, Year Time", "f")
@@ -158,7 +158,7 @@ public class SlashCommands extends ListenerAdapter {
                         .addOption("Time since", "R")
                         .addOption("Hour:Minute:Second", "T")
                         .setPlaceholder("Time display format")
-                        .build())
+                        .build()))
                 .queue();
     }
 public long adminRole;
@@ -265,16 +265,16 @@ public long adminRole;
                 break;
 
             case "channelaccess":
-                TextInput channelID = TextInput.create("channelID", "ID of Channel", TextInputStyle.SHORT).build();
+                TextInput channelID = TextInput.create("channelID", TextInputStyle.SHORT).build();
                 Modal modal = Modal.create("channelaccess", "Choose Channel to Access")
-                        .addComponents(ActionRow.of(channelID))
+                        .addComponents(Label.of("channelID", channelID))
                         .build();
                 event.replyModal(modal).queue();
                 break;
 
             case "unchannelaccess":
                 event.reply("Which one?").setEphemeral(true).addComponents(ActionRow.of(
-                        EntitySelectMenu.create("choose-channel", EntitySelectMenu.SelectTarget.CHANNEL).build())
+                        EntitySelectMenu.create("choose-channel", SelectTarget.CHANNEL).build())
                 ).queue();
                 break;
 
